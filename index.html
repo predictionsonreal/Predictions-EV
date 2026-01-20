@@ -1,16 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Real App Daily Recap</title>
+<title>Daily Recap Generator</title>
 
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-table { border-collapse: collapse; margin-bottom: 15px; }
-th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-input { width: 90px; }
-button { padding: 8px 12px; margin-right: 8px; }
-.output { white-space: pre-line; font-family: monospace; background: #f4f4f4; padding: 12px; margin-top: 15px; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f4f8;
+    color: #1a1a1a;
+    padding: 20px;
+}
+
+h2 {
+    color: #2c3e50;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 15px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background-color: #4a90e2;
+    color: white;
+    font-size: 14px;
+}
+
+input {
+    width: 90px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px 16px;
+    margin-right: 10px;
+    border-radius: 6px;
+    border: none;
+    background-color: #4a90e2;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #357ABD;
+}
+
+.output {
+    white-space: pre-line;
+    font-family: monospace;
+    background-color: #e8f0fe;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #bbb;
+    margin-top: 15px;
+}
 </style>
 </head>
 
@@ -27,17 +86,18 @@ button { padding: 8px 12px; margin-right: 8px; }
   <th>Result (W/L)</th>
 </tr>
 <tr>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
+  <td><input placeholder="Team"></td>
+  <td><input placeholder="Real %"></td>
+  <td><input placeholder="Odds"></td>
+  <td><input placeholder="RAX"></td>
+  <td><input placeholder="Payout"></td>
+  <td><input value="W"></td>
 </tr>
 </table>
 
 <button onclick="addRow()">Add Bet</button>
-<button onclick="generate()">Generate</button>
+<button onclick="generate()">Generate Recap</button>
+<button onclick="copyOutput()">Copy All</button>
 
 <div class="output" id="output"></div>
 
@@ -49,11 +109,16 @@ function addRow() {
     const cell = row.insertCell();
     const input = document.createElement("input");
     if(i===5) input.value="W";
+    if(i===0) input.placeholder="Team";
+    if(i===1) input.placeholder="Real %";
+    if(i===2) input.placeholder="Odds";
+    if(i===3) input.placeholder="RAX";
+    if(i===4) input.placeholder="Payout";
     cell.appendChild(input);
   }
 }
 
-// Converts odds to implied market % (like Real app)
+// Convert odds to implied market %
 function oddsToPercent(odds) {
   odds = Number(odds);
   if (odds < 0) return Math.abs(odds) / (Math.abs(odds)+100) * 100;
@@ -80,7 +145,7 @@ function generate() {
     if (!team) continue;
 
     const market = oddsToPercent(odds);
-    const edge = market - real;
+    const edge = real - market; // Edge = Real % - Market %
     const buyMax = market - 5;
 
     let profit = 0;
@@ -88,7 +153,6 @@ function generate() {
       if(payoutInput) {
         profit = Number(payoutInput) - rax;
       } else {
-        // Calculate automatically
         profit = (odds < 0 ? rax * (100/Math.abs(odds)) : rax * (odds/100));
       }
       wins++;
@@ -101,10 +165,10 @@ function generate() {
     totalProfit += profit;
     totalEdge += edge;
 
-    // Per-bet format
+    // Per-bet block
     betBlocks +=
 `Team: ${team}
-Bought: ${(rax/1000).toFixed(0)}k
+Bought: ${rax.toLocaleString()} RAX
 Real: (${real}%)
 Market: (${odds}) (${market.toFixed(1)}%)
 Edge: (+${edge.toFixed(1)}%)
@@ -130,6 +194,14 @@ Profit: ${totalProfit.toFixed(0)} RAX
 Expected Return: +${totalEdge.toFixed(1)}%
 Actual Return: ${actualReturn.toFixed(1)}%
 Luck: ${luck.toFixed(1)}%`;
+}
+
+// Copy to clipboard
+function copyOutput() {
+  const output = document.getElementById("output");
+  navigator.clipboard.writeText(output.textContent).then(() => {
+    alert("Daily Recap copied to clipboard!");
+  });
 }
 </script>
 
