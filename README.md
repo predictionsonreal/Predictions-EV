@@ -4,7 +4,7 @@ EV tracker for Predictions on Real - Sports
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Daily Recap Generator</title>
+<title>EV Predictions</title>
 
 <style>
 body {
