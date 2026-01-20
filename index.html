@@ -2,39 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Daily Recap Generator</title>
+<title>EV Predictions on Real - Sports</title>
 
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f4f8;
-    color: #1a1a1a;
+    background-color: #1e1e2f; /* dark background */
+    color: #e0e0e0;
     padding: 20px;
 }
 
 h2 {
-    color: #2c3e50;
+    color: #f5a623;
+    margin-bottom: 15px;
 }
 
 table {
     border-collapse: collapse;
     width: 100%;
     margin-bottom: 15px;
-    background-color: #ffffff;
+    background-color: #2c2c3e; /* dark table */
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
 
 th, td {
-    border: 1px solid #ddd;
+    border: 1px solid #444;
     padding: 10px;
     text-align: center;
 }
 
 th {
-    background-color: #4a90e2;
-    color: white;
+    background-color: #f5a623; /* orange header */
+    color: #1e1e2f;
     font-size: 14px;
 }
 
@@ -42,7 +43,9 @@ input {
     width: 90px;
     padding: 5px;
     border-radius: 4px;
-    border: 1px solid #ccc;
+    border: 1px solid #666;
+    background-color: #2c2c3e;
+    color: #e0e0e0;
 }
 
 button {
@@ -50,31 +53,32 @@ button {
     margin-right: 10px;
     border-radius: 6px;
     border: none;
-    background-color: #4a90e2;
-    color: white;
+    background-color: #f5a623; /* orange buttons */
+    color: #1e1e2f;
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 button:hover {
-    background-color: #357ABD;
+    background-color: #d18e1b;
 }
 
 .output {
     white-space: pre-line;
     font-family: monospace;
-    background-color: #e8f0fe;
+    background-color: #2c2c3e; /* dark output box */
     padding: 15px;
     border-radius: 8px;
-    border: 1px solid #bbb;
+    border: 1px solid #444;
     margin-top: 15px;
+    color: #e0e0e0;
 }
 </style>
 </head>
 
 <body>
-<h2>Daily Recap Generator</h2>
+<h2>EV Predictions on Real - Sports</h2>
 
 <table id="bets">
 <tr>
@@ -96,7 +100,7 @@ button:hover {
 </table>
 
 <button onclick="addRow()">Add Bet</button>
-<button onclick="generate()">Generate Recap</button>
+<button onclick="generate()">Generate</button>
 <button onclick="copyOutput()">Copy All</button>
 
 <div class="output" id="output"></div>
@@ -191,9 +195,9 @@ recapLines +
 `Record: ${wins}-${losses}
 Total Risk: ${totalRisk.toLocaleString()} RAX
 Profit: ${totalProfit.toFixed(0)} RAX
-Expected Return: +${totalEdge.toFixed(1)}%
-Actual Return: ${actualReturn.toFixed(1)}%
-Luck: ${luck.toFixed(1)}%`;
+Expected Return: ${totalEdge >= 0 ? '+' : ''}${totalEdge.toFixed(1)}%
+Actual Return: ${actualReturn >= 0 ? '+' : ''}${actualReturn.toFixed(1)}%
+Luck: ${luck >= 0 ? '+' : ''}${luck.toFixed(1)}%`;
 }
 
 // Copy to clipboard
