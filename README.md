@@ -1,4 +1,4 @@
-# Predictions-EV
+#
 EV tracker for Predictions on Real - Sports
 <!DOCTYPE html>
 <html lang="en">
