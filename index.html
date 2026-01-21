@@ -166,27 +166,19 @@ function generate() {
     const real = Number(cells[1].children[0].value);
     const odds = Number(cells[2].children[0].value);
     const rax = Number(cells[3].children[0].value);
-    const payoutInput = Number(cells[4].children[0].value);
+    const payoutInput = cells[4].children[0].value;
     const result = cells[5].children[0].value.toUpperCase();
 
-    if (!team) continue;
+    if (!team || !rax) continue;
 
     const market = oddsToPercent(odds);
     const edge = market - real; // Edge = Market % - Real %
     const buyMax = market - 5;
 
-    // ✅ Correct EV calculation based on FanDuel / Real payout
-    let EV = 0;
-    if (payoutInput && rax > 0) {
-        let fanProb = odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
-        let realImpliedProb = rax / payoutInput;
-        EV = (fanProb / realImpliedProb - 1) * 100;
-    }
-
     let profit = 0;
     if (result === "W") {
       if(payoutInput) {
-        profit = payoutInput - rax;
+        profit = Number(payoutInput) - rax;
       } else {
         profit = (odds < 0 ? rax * (100/Math.abs(odds)) : rax * (odds/100));
       }
@@ -206,7 +198,6 @@ Bought: ${rax.toLocaleString()} RAX
 Real: (${real}%)
 Market: (${odds}) (${market.toFixed(1)}%)
 Edge: ${formatSigned(edge)}
-EV: ${formatSigned(EV)}
 Buy ≤ (${buyMax.toFixed(1)}%)
 Result: ${result === "W" ? "✅" : "❌"}
 
