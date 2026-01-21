@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>EV Predictions on Real - Sports</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,13 +11,11 @@ body {
     color: #e0e0e0;
     padding: 20px;
 }
-
 h2 {
     color: #4a90e2;
     margin-bottom: 15px;
     text-align: center;
 }
-
 table {
     border-collapse: collapse;
     width: 100%;
@@ -28,19 +25,16 @@ table {
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
-
 th, td {
     border: 1px solid #444;
     padding: 10px;
     text-align: center;
 }
-
 th {
     background-color: #4a90e2;
     color: #ffffff;
     font-size: 14px;
 }
-
 input {
     width: 90px;
     padding: 5px;
@@ -50,7 +44,6 @@ input {
     color: #e0e0e0;
     text-align: center;
 }
-
 button {
     padding: 10px 16px;
     margin: 5px 5px 15px 0;
@@ -62,11 +55,9 @@ button {
     cursor: pointer;
     transition: background-color 0.2s;
 }
-
 button:hover {
     background-color: #357ABD;
 }
-
 .output {
     white-space: pre-line;
     font-family: monospace;
@@ -77,7 +68,9 @@ button:hover {
     margin-top: 15px;
     color: #e0e0e0;
 }
-
+.ev-positive { color: #00ff85; font-weight: bold; }
+.ev-negative { color: #ff4d4d; font-weight: bold; }
+.ev-zero { color: #aaa; }
 /* Mobile responsiveness */
 @media (max-width: 600px) {
     table, th, td, input, button {
@@ -94,10 +87,8 @@ button:hover {
 }
 </style>
 </head>
-
 <body>
 <h2>EV Predictions on Real - Sports</h2>
-
 <table id="bets">
 <tr>
   <th>Team</th>
@@ -105,6 +96,7 @@ button:hover {
   <th>Market Odds</th>
   <th>RAX</th>
   <th>Payout (optional)</th>
+  <th>EV %</th>
   <th>Result (W/L)</th>
 </tr>
 <tr>
@@ -113,113 +105,152 @@ button:hover {
   <td><input placeholder="Odds"></td>
   <td><input placeholder="RAX"></td>
   <td><input placeholder="Payout"></td>
+  <td class="ev-zero">—</td>
   <td><input value="W"></td>
 </tr>
 </table>
-
 <button onclick="addRow()">Add Bet</button>
 <button onclick="generate()">Generate</button>
 <button onclick="copyOutput()">Copy All</button>
-
 <div class="output" id="output"></div>
 
 <script>
 function addRow() {
   const table = document.getElementById("bets");
   const row = table.insertRow();
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     const cell = row.insertCell();
+    if (i === 5) { // EV column - no input, calculated
+      cell.textContent = "—";
+      cell.className = "ev-zero";
+      continue;
+    }
     const input = document.createElement("input");
-    if(i===5) input.value="W";
-    if(i===0) input.placeholder="Team";
-    if(i===1) input.placeholder="Real %";
-    if(i===2) input.placeholder="Odds";
-    if(i===3) input.placeholder="RAX";
-    if(i===4) input.placeholder="Payout";
+    if (i === 6) input.value = "W";
+    if (i === 0) input.placeholder = "Team";
+    if (i === 1) input.placeholder = "Real %";
+    if (i === 2) input.placeholder = "Odds";
+    if (i === 3) input.placeholder = "RAX";
+    if (i === 4) input.placeholder = "Payout";
     cell.appendChild(input);
   }
 }
 
-// Convert odds to implied market %
+// Convert American odds to implied market %
 function oddsToPercent(odds) {
   odds = Number(odds);
-  if (odds < 0) return Math.abs(odds) / (Math.abs(odds)+100) * 100;
-  return 100 / (odds+100) * 100;
+  if (isNaN(odds)) return 0;
+  if (odds < 0) return Math.abs(odds) / (Math.abs(odds) + 100) * 100;
+  if (odds > 0) return 100 / (odds + 100) * 100;
+  return 50; // even money fallback
 }
 
-// Format number with + or - sign
-function formatSigned(num) {
-  return (num >= 0 ? '+' : '') + num.toFixed(1) + '%';
+// Format signed number with % and color class
+function formatEV(num) {
+  if (isNaN(num)) return {text: "—", cls: "ev-zero"};
+  const sign = num >= 0 ? '+' : '';
+  const val = num.toFixed(1);
+  let cls = "ev-zero";
+  if (num > 0) cls = "ev-positive";
+  if (num < 0) cls = "ev-negative";
+  return {text: sign + val + '%', cls: cls};
+}
+
+function calculateEV(realProb, odds) {
+  if (realProb <= 0 || realProb >= 100 || isNaN(realProb)) return {text: "—", cls: "ev-zero"};
+  const marketProb = oddsToPercent(odds);
+  if (marketProb <= 0) return {text: "—", cls: "ev-zero"};
+  // EV % = (true_prob / market_prob) - 1   → % edge
+  const ev = ((realProb / marketProb) - 1) * 100;
+  return formatEV(ev);
 }
 
 function generate() {
   const table = document.getElementById("bets");
-  let totalRisk = 0, totalProfit = 0, totalEdge = 0;
+  let totalRisk = 0, totalProfit = 0, totalEV = 0, evCount = 0;
   let wins = 0, losses = 0;
-
   let betBlocks = "";
   let recapLines = "";
 
   for (let i = 1; i < table.rows.length; i++) {
     const cells = table.rows[i].cells;
-    const team = cells[0].children[0].value;
-    const real = Number(cells[1].children[0].value);
-    const odds = Number(cells[2].children[0].value);
-    const rax = Number(cells[3].children[0].value);
-    const payoutInput = cells[4].children[0].value;
-    const result = cells[5].children[0].value.toUpperCase();
+    const team = cells[0].children[0]?.value.trim();
+    const realStr = cells[1].children[0]?.value;
+    const oddsStr = cells[2].children[0]?.value;
+    const raxStr = cells[3].children[0]?.value;
+    const payoutInput = cells[4].children[0]?.value;
+    const result = (cells[6]?.children[0]?.value || "").toUpperCase(); // result is now index 6
 
-    if (!team) continue;
+    if (!team || isNaN(Number(realStr)) || isNaN(Number(oddsStr)) || isNaN(Number(raxStr))) continue;
+
+    const real = Number(realStr);
+    const odds = Number(oddsStr);
+    const rax = Number(raxStr);
 
     const market = oddsToPercent(odds);
-    const edge = market - real; // ✅ Edge = Market % - Real %
-    const buyMax = market - 5;
+    const evObj = calculateEV(real, odds);
+    // Update table cell live
+    cells[5].textContent = evObj.text;
+    cells[5].className = evObj.cls;
 
+    const edge = market - real; // old edge (you can keep or remove)
     let profit = 0;
     if (result === "W") {
-      if(payoutInput) {
+      if (payoutInput && !isNaN(Number(payoutInput))) {
         profit = Number(payoutInput) - rax;
       } else {
-        profit = (odds < 0 ? rax * (100/Math.abs(odds)) : rax * (odds/100));
+        profit = (odds < 0 ? rax * (100 / Math.abs(odds)) : rax * (odds / 100));
       }
       wins++;
-    } else {
+    } else if (result === "L") {
       profit = -rax;
       losses++;
+    } else {
+      profit = 0; // pending/unsettled
     }
 
     totalRisk += rax;
     totalProfit += profit;
-    totalEdge += edge;
+    if (!isNaN(evObj.text.replace(/[^0-9.-]/g, ''))) {
+      const evVal = parseFloat(evObj.text);
+      totalEV += evVal;
+      evCount++;
+    }
 
-    betBlocks +=
+    betBlocks += 
 `Team: ${team}
 Bought: ${rax.toLocaleString()} RAX
-Real: (${real}%)
-Market: (${odds}) (${market.toFixed(1)}%)
-Edge: ${formatSigned(edge)}
-Buy ≤ (${buyMax.toFixed(1)}%)
-Result: ${result === "W" ? "✅" : "❌"}
-
+Real: ${real}%
+Market: ${odds} (${market.toFixed(1)}%)
+EV: ${evObj.text}
+Edge (old): ${formatSigned(edge)}
+Result: ${result === "W" ? "✅" : result === "L" ? "❌" : "Pending"}
+-------------------
 `;
 
-    recapLines += `${team} ML (${odds}): ${result === "W" ? "✅" : "❌"}\n`;
+    recapLines += `${team} (${odds}): ${result === "W" ? "✅" : result === "L" ? "❌" : "?"}   EV ${evObj.text}\n`;
   }
 
-  const actualReturn = (totalProfit/totalRisk)*100;
-  const luck = actualReturn - totalEdge;
+  const avgEV = evCount > 0 ? totalEV / evCount : 0;
+  const actualReturn = totalRisk > 0 ? (totalProfit / totalRisk) * 100 : 0;
+  const luck = actualReturn - avgEV;
 
   document.getElementById("output").textContent =
 betBlocks +
 "-----------------\n" +
 recapLines +
 "-----------------\n" +
-`Record: ${wins}-${losses}
-Total Risk: ${totalRisk.toLocaleString()} RAX
-Profit: ${totalProfit.toFixed(0)} RAX
-Expected Return: ${formatSigned(totalEdge)}
-Actual Return: ${formatSigned(actualReturn)}
-Luck: ${formatSigned(luck)}`;
+`Record: ${wins}-${losses}   (Pending: ${table.rows.length - 1 - wins - losses})\n` +
+`Total Risk: ${totalRisk.toLocaleString()} RAX\n` +
+`Profit: ${totalProfit.toFixed(0)} RAX\n` +
+`Avg EV: ${formatEV(avgEV).text}\n` +
+`Actual Return: ${formatSigned(actualReturn)}\n` +
+`Luck (Actual - EV): ${formatSigned(luck)}`;
+
+  // Helper for old edge format (kept for compatibility)
+  function formatSigned(num) {
+    return (num >= 0 ? '+' : '') + num.toFixed(1) + '%';
+  }
 }
 
 // Copy to clipboard
