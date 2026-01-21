@@ -4,266 +4,202 @@
 <meta charset="UTF-8">
 <title>EV Predictions on Real - Sports</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
+:root {
+  --bg: #0b1220;
+  --card: #111a2e;
+  --accent: #3b82f6;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --good: #22c55e;
+  --bad: #ef4444;
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #1e1e2f;
-    color: #e0e0e0;
-    padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  margin: 0;
+  padding: 20px;
 }
-h2 {
-    color: #4a90e2;
-    margin-bottom: 15px;
-    text-align: center;
+
+h1 {
+  text-align: center;
+  color: var(--accent);
+  margin-bottom: 20px;
 }
-table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 15px;
-    background-color: #2c2c3e;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+
+.container {
+  max-width: 900px;
+  margin: auto;
 }
-th, td {
-    border: 1px solid #444;
-    padding: 10px;
-    text-align: center;
+
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
 }
-th {
-    background-color: #4a90e2;
-    color: #ffffff;
-    font-size: 14px;
+
+label {
+  font-size: 0.85rem;
+  color: var(--muted);
 }
-input {
-    width: 90px;
-    padding: 5px;
-    border-radius: 4px;
-    border: 1px solid #666;
-    background-color: #2c2c3e;
-    color: #e0e0e0;
-    text-align: center;
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  background: #0f172a;
+  color: var(--text);
 }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
 button {
-    padding: 10px 16px;
-    margin: 5px 5px 15px 0;
-    border-radius: 6px;
-    border: none;
-    background-color: #4a90e2;
-    color: #1e1e2f;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  background: var(--accent);
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
 }
+
 button:hover {
-    background-color: #357ABD;
+  opacity: 0.9;
 }
+
 .output {
-    white-space: pre-line;
-    font-family: monospace;
-    background-color: #2c2c3e;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    margin-top: 15px;
-    color: #e0e0e0;
-}
-.ev-positive { color: #00ff85; font-weight: bold; }
-.ev-negative { color: #ff4d4d; font-weight: bold; }
-.ev-zero { color: #aaa; }
-.note {
-    text-align: center;
-    color: #bbb;
-    margin-bottom: 15px;
-    font-size: 14px;
-}
-/* Mobile responsiveness */
-@media (max-width: 600px) {
-    table, th, td, input, button {
-        font-size: 12px;
-        padding: 6px;
-    }
-    input {
-        width: 70px;
-    }
-    button {
-        padding: 8px 12px;
-        margin-bottom: 10px;
-    }
+  white-space: pre-wrap;
+  font-family: monospace;
+  background: #020617;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 10px;
 }
 </style>
 </head>
+
 <body>
-<h2>EV Predictions on Real - Sports</h2>
-<p class="note">Enter FanDuel odds (trusted/true market). Use actual Real payout for accurate +EV detection. Green EV = good value to buy on Real!</p>
+<h1>EV Predictions on Real - Sports</h1>
 
-<table id="bets">
-<tr>
-  <th>Team / Prop</th>
-  <th>FanDuel Odds</th>
-  <th>RAX Bought</th>
-  <th>Real Payout</th>
-  <th>EV %</th>
-  <th>Result (W/L)</th>
-</tr>
-<tr>
-  <td><input placeholder="Team/Prop"></td>
-  <td><input placeholder="e.g. -136"></td>
-  <td><input placeholder="RAX"></td>
-  <td><input placeholder="Total payout"></td>
-  <td class="ev-zero">—</td>
-  <td><input value="W"></td>
-</tr>
-</table>
+<div class="container">
 
-<button onclick="addRow()">Add Bet</button>
-<button onclick="generate()">Generate / Calc EV</button>
-<button onclick="copyOutput()">Copy Recap</button>
+<div class="card">
+<h3>Bet Input</h3>
 
-<div class="output" id="output"></div>
+<div class="grid">
+  <div>
+    <label>Team</label>
+    <input id="team">
+  </div>
+
+  <div>
+    <label>Stake (RAX)</label>
+    <input id="stake" type="number">
+  </div>
+
+  <div>
+    <label>Payout (RAX if win)</label>
+    <input id="payout" type="number">
+  </div>
+
+  <div>
+    <label>Real %</label>
+    <input id="real" type="number">
+  </div>
+
+  <div>
+    <label>FanDuel Odds</label>
+    <input id="odds">
+  </div>
+</div>
+
+<button onclick="addBet()">Add Bet</button>
+</div>
+
+<div class="card">
+<h3>Generated Bet Slip</h3>
+<div class="output" id="betSlip"></div>
+</div>
+
+<div class="card">
+<h3>Daily Recap</h3>
+<div class="output" id="recap"></div>
+</div>
+
+</div>
 
 <script>
-function addRow() {
-  const table = document.getElementById("bets");
-  const row = table.insertRow();
-  for (let i = 0; i < 6; i++) {
-    const cell = row.insertCell();
-    if (i === 4) { // EV column - no input
-      cell.textContent = "—";
-      cell.className = "ev-zero";
-      continue;
-    }
-    const input = document.createElement("input");
-    if (i === 5) input.value = "W";
-    if (i === 0) input.placeholder = "Team/Prop";
-    if (i === 1) input.placeholder = "e.g. -136";
-    if (i === 2) input.placeholder = "RAX";
-    if (i === 3) input.placeholder = "Total payout";
-    cell.appendChild(input);
-  }
-}
+let bets = [];
 
-// Convert American odds to implied probability %
-function oddsToPercent(odds) {
+function impliedProb(odds) {
   odds = Number(odds);
-  if (isNaN(odds)) return 0;
-  if (odds < 0) return Math.abs(odds) / (Math.abs(odds) + 100) * 100;
-  if (odds > 0) return 100 / (odds + 100) * 100;
-  return 50; // even money fallback
+  if (odds < 0) return Math.abs(odds) / (Math.abs(odds) + 100);
+  return 100 / (odds + 100);
 }
 
-// Format EV with sign, %, and color
-function formatEV(num) {
-  if (isNaN(num)) return {text: "—", cls: "ev-zero"};
-  const sign = num >= 0 ? '+' : '';
-  const val = num.toFixed(1);
-  let cls = "ev-zero";
-  if (num > 0.5) cls = "ev-positive";
-  if (num < -0.5) cls = "ev-negative";
-  return {text: sign + val + '%', cls: cls};
+function fmt(num) {
+  return (num >= 0 ? '+' : '') + num.toFixed(1);
 }
 
-// Calculate EV based on FanDuel (true) vs Real payout price
-function calculateEV(fanduelOdds, rax, payout) {
-  if (!rax || !payout || payout <= rax || isNaN(rax) || isNaN(payout)) {
-    return {text: "—", cls: "ev-zero"};
-  }
-  const realMultiplier = payout / rax;                    // e.g. 12905 / 6000 = 2.1508
-  const realImpliedProb = 100 / realMultiplier;           // implied % on Real
-  const fanImpliedProb = oddsToPercent(fanduelOdds);      // trusted true %
-  
-  if (fanImpliedProb <= 0 || realImpliedProb <= 0) {
-    return {text: "—", cls: "ev-zero"};
-  }
-  
-  // EV % = (true_prob / real_implied_prob) - 1
-  const ev = ((fanImpliedProb / realImpliedProb) - 1) * 100;
-  return formatEV(ev);
-}
+function addBet() {
+  const team = team.value;
+  const stake = Number(stake.value);
+  const payout = Number(payout.value);
+  const realP = Number(real.value) / 100;
+  const marketP = impliedProb(odds.value);
 
-function generate() {
-  const table = document.getElementById("bets");
-  let totalRisk = 0, totalProfit = 0, totalEV = 0, evCount = 0;
-  let wins = 0, losses = 0;
-  let betBlocks = "";
-  let recapLines = "";
+  const profit = (payout / stake) - 1;
+  const EV = (marketP * profit) - (1 - marketP);
+  const EVpct = EV * 100;
 
-  for (let i = 1; i < table.rows.length; i++) {
-    const cells = table.rows[i].cells;
-    const team = cells[0].children[0]?.value.trim();
-    const oddsStr = cells[1].children[0]?.value;
-    const raxStr = cells[2].children[0]?.value;
-    const payoutStr = cells[3].children[0]?.value;
-    const result = (cells[5]?.children[0]?.value || "").toUpperCase();
+  const edge = (marketP - realP) * 100;
+  const buyLimit = (marketP * 100 - 5);
 
-    if (!team || isNaN(Number(oddsStr)) || isNaN(Number(raxStr))) continue;
+  bets.push({ team, stake, payout, marketP, EV });
 
-    const odds = Number(oddsStr);
-    const rax = Number(raxStr);
-    const payout = payoutStr ? Number(payoutStr) : 0;
+  betSlip.innerText +=
+`Team: ${team}
+Bought: ${stake.toLocaleString()} RAX
+Real: ${(realP*100).toFixed(1)}%
+Market: ${odds.value} (${(marketP*100).toFixed(1)}%)
+Edge: ${fmt(edge)}%
+EV: ${fmt(EVpct)}%
+Buy ≤ ${buyLimit.toFixed(1)}%
 
-    const evObj = calculateEV(odds, rax, payout);
-    cells[4].textContent = evObj.text;
-    cells[4].className = evObj.cls;
-
-    let profit = 0;
-    if (result === "W") {
-      profit = payout ? (payout - rax) : 0; // use actual payout if entered
-      wins++;
-    } else if (result === "L") {
-      profit = -rax;
-      losses++;
-    }
-
-    totalRisk += rax;
-    totalProfit += profit;
-
-    if (evObj.text !== "—" && evObj.text !== "") {
-      const evVal = parseFloat(evObj.text);
-      totalEV += evVal;
-      evCount++;
-    }
-
-    const fanProb = oddsToPercent(odds).toFixed(1);
-    const realProbEst = payout ? (100 / (payout / rax)).toFixed(1) : "—";
-
-    betBlocks += 
-`Team/Prop: ${team}
-FanDuel Odds: ${odds} (~${fanProb}%)
-RAX Bought: ${rax.toLocaleString()}
-Real Payout: ${payout ? payout.toLocaleString() : "—"}
-EV: ${evObj.text}  (FanDuel ${fanProb}% vs Real ~${realProbEst}%)
-Result: ${result === "W" ? "✅ Win" : result === "L" ? "❌ Loss" : "Pending"}
--------------------
 `;
 
-    recapLines += `${team} (${odds}): ${result === "W" ? "✅" : result === "L" ? "❌" : "?"}   EV ${evObj.text}\n`;
-  }
-
-  const avgEV = evCount > 0 ? totalEV / evCount : 0;
-  const actualReturn = totalRisk > 0 ? (totalProfit / totalRisk) * 100 : 0;
-  const luck = actualReturn - avgEV;
-
-  document.getElementById("output").textContent =
-betBlocks +
-"-----------------\n" +
-recapLines +
-"-----------------\n" +
-`Record: ${wins}-${losses}   (Pending: ${table.rows.length - 1 - wins - losses})\n` +
-`Total Risk: ${totalRisk.toLocaleString()} RAX\n` +
-`Profit: ${totalProfit.toFixed(0)} RAX\n` +
-`Average EV: ${formatEV(avgEV).text}\n` +
-`Actual Return: ${(actualReturn >= 0 ? '+' : '') + actualReturn.toFixed(1)}%\n` +
-`Luck (Actual - EV): ${(luck >= 0 ? '+' : '') + luck.toFixed(1)}%`;
+  updateRecap();
 }
 
-// Copy to clipboard
-function copyOutput() {
-  const output = document.getElementById("output");
-  navigator.clipboard.writeText(output.textContent).then(() => {
-    alert("Recap copied to clipboard!");
+function updateRecap() {
+  let totalRisk = 0;
+  let expectedProfit = 0;
+
+  bets.forEach(b => {
+    totalRisk += b.stake;
+    expectedProfit += b.EV * b.stake;
   });
+
+  const expectedReturn = (expectedProfit / totalRisk) * 100;
+
+  recap.innerText =
+`Total Bets: ${bets.length}
+Total Risk: ${totalRisk.toLocaleString()} RAX
+Expected Profit: ${expectedProfit.toFixed(0)} RAX
+Expected Return: ${fmt(expectedReturn)}%
+`;
 }
 </script>
+
 </body>
 </html>
