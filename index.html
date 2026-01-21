@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EV Predictions on Real - Sports</title>
+<title>Predictions on Real</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -99,7 +99,7 @@ button:hover {
 <body>
 <div class="container">
 
-<h2>EV Predictions on Real - Sports</h2>
+<h2>Predictions on Real</h2>
 
 <h3>Market Odds Converter</h3>
 <div class="converter">
@@ -134,7 +134,6 @@ button:hover {
 </table>
 
 <button onclick="addRow()">Add Bet</button>
-<button onclick="saveData()">Lock In</button>
 <button onclick="clearAll()">Clear All</button>
 <button onclick="generate()">Generate</button>
 <button onclick="copyOutput()">Copy All</button>
@@ -145,7 +144,7 @@ button:hover {
 
 <script>
 // ----------------------
-// Odds Converter
+// Odds Converter (Auto-save)
 // ----------------------
 const oddsInput = document.getElementById("oddsInput");
 const probInput = document.getElementById("probInput");
@@ -157,6 +156,7 @@ oddsInput.addEventListener("input", () => {
         ? Math.abs(odds) / (Math.abs(odds) + 100)
         : 100 / (odds + 100);
     probInput.value = (prob * 100).toFixed(1);
+    saveAll();
 });
 
 probInput.addEventListener("input", () => {
@@ -166,10 +166,11 @@ probInput.addEventListener("input", () => {
         ? -(100 * p / (1 - p))
         : (100 * (1 - p) / p);
     oddsInput.value = Math.round(odds);
+    saveAll();
 });
 
 // ----------------------
-// Bets Logic
+// Bets
 // ----------------------
 function addRow() {
     const table = document.getElementById("bets");
@@ -178,8 +179,10 @@ function addRow() {
         const cell = row.insertCell();
         const input = document.createElement("input");
         if (i === 5) input.value = "W";
+        input.addEventListener("input", saveAll);
         cell.appendChild(input);
     }
+    saveAll();
 }
 
 function oddsToPercent(odds) {
@@ -193,9 +196,9 @@ function formatSigned(num) {
 }
 
 // ----------------------
-// SAVE / LOAD (KEY FIX)
+// AUTO-SAVE / LOAD
 // ----------------------
-function saveData() {
+function saveAll() {
     const table = document.getElementById("bets");
     const rows = [];
 
@@ -207,11 +210,9 @@ function saveData() {
     localStorage.setItem("betsData", JSON.stringify(rows));
     localStorage.setItem("oddsInput", oddsInput.value);
     localStorage.setItem("probInput", probInput.value);
-
-    alert("Locked in. Data saved.");
 }
 
-function loadData() {
+function loadAll() {
     const saved = JSON.parse(localStorage.getItem("betsData"));
     if (!saved) return;
 
@@ -224,6 +225,7 @@ function loadData() {
             const cell = row.insertCell();
             const input = document.createElement("input");
             input.value = val;
+            input.addEventListener("input", saveAll);
             cell.appendChild(input);
         });
     });
@@ -233,20 +235,21 @@ function loadData() {
 }
 
 function clearAll() {
+    if (!confirm("Clear all saved bets?")) return;
     localStorage.clear();
     location.reload();
 }
 
 // ----------------------
-// GENERATE OUTPUT
+// OUTPUT
 // ----------------------
 function generate() {
     const table = document.getElementById("bets");
     let totalRisk = 0, totalProfit = 0, totalEdge = 0;
     let wins = 0, losses = 0;
 
-    let betBlocks = "";
-    let recapLines = "";
+    let blocks = "";
+    let recap = "";
 
     for (let i = 1; i < table.rows.length; i++) {
         const c = table.rows[i].cells;
@@ -263,7 +266,7 @@ function generate() {
         const edge = market - real;
         const buyMax = market - 5;
 
-        let profit = result === "W"
+        const profit = result === "W"
             ? (payout ? payout - rax : (odds < 0 ? rax * (100 / Math.abs(odds)) : rax * (odds / 100)))
             : -rax;
 
@@ -273,7 +276,7 @@ function generate() {
         totalProfit += profit;
         totalEdge += edge;
 
-        betBlocks +=
+        blocks +=
 `Team: ${team}
 Bought: ${rax.toLocaleString()} RAX
 Real: (${real}%)
@@ -284,16 +287,16 @@ Result: ${result === "W" ? "✅" : "❌"}
 
 `;
 
-        recapLines += `${team} ML (${odds}): ${result === "W" ? "✅" : "❌"}\n`;
+        recap += `${team} ML (${odds}): ${result === "W" ? "✅" : "❌"}\n`;
     }
 
     const actualReturn = (totalProfit / totalRisk) * 100;
     const luck = actualReturn - totalEdge;
 
     document.getElementById("output").textContent =
-betBlocks +
+blocks +
 "-----------------\n" +
-recapLines +
+recap +
 "-----------------\n" +
 `Record: ${wins}-${losses}
 Total Risk: ${totalRisk.toLocaleString()} RAX
@@ -305,10 +308,9 @@ Luck: ${formatSigned(luck)}`;
 
 function copyOutput() {
     navigator.clipboard.writeText(document.getElementById("output").textContent);
-    alert("Copied!");
 }
 
-loadData();
+loadAll();
 </script>
 
 </body>
