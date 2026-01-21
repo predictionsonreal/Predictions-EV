@@ -172,14 +172,15 @@ function generate() {
     if (!team) continue;
 
     const market = oddsToPercent(odds);
-    const edge = market - real; // ✅ Edge = Market % - Real %
+    const edge = market - real; // Edge = Market % - Real %
     const buyMax = market - 5;
 
-    // EV calculation using payout and stake
+    // ✅ Correct EV calculation based on FanDuel / Real payout
     let EV = 0;
-    if(payoutInput && rax > 0) {
-        const profitRatio = payoutInput / rax;
-        EV = (market/100 * profitRatio - (1 - market/100)) * 100;
+    if (payoutInput && rax > 0) {
+        let fanProb = odds < 0 ? Math.abs(odds)/(Math.abs(odds)+100) : 100/(odds+100);
+        let realImpliedProb = rax / payoutInput;
+        EV = (fanProb / realImpliedProb - 1) * 100;
     }
 
     let profit = 0;
