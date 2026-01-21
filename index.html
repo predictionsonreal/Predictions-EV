@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Predictions on Real</title>
+<title>EV Predictions on Real - Sports</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -13,23 +13,28 @@ body {
     padding: 20px;
 }
 
-h2, h3 {
+h1 {
     color: #4a90e2;
     text-align: center;
+    font-size: 28px;
+    margin-bottom: 10px;
 }
 
-.container {
-    max-width: 900px;
-    margin: auto;
+.section-title {
+    color: #ffffff;
+    font-size: 18px;
+    margin: 20px 0 10px;
+    font-weight: 600;
 }
 
 table {
-    width: 100%;
     border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 15px;
     background-color: #2c2c3e;
     border-radius: 8px;
     overflow: hidden;
-    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
 
 th, td {
@@ -39,8 +44,9 @@ th, td {
 }
 
 th {
-    background-color: #4a90e2;
-    color: #fff;
+    background-color: #3a3a55;
+    color: #ffffff;
+    font-size: 14px;
 }
 
 input {
@@ -48,42 +54,33 @@ input {
     padding: 6px;
     border-radius: 4px;
     border: 1px solid #666;
-    background-color: #1e1e2f;
+    background-color: #2c2c3e;
     color: #e0e0e0;
     text-align: center;
 }
 
 button {
-    padding: 12px 18px;
+    padding: 10px 16px;
+    margin: 5px 5px 15px 0;
     border-radius: 6px;
     border: none;
+    background-color: #4a90e2;
+    color: #1e1e2f;
     font-weight: bold;
     cursor: pointer;
 }
 
-.button-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
+button:hover {
+    background-color: #357ABD;
 }
 
-.btn-primary {
-    background-color: #4a90e2;
-    color: #1e1e2f;
+.clear-btn {
+    background-color: #c94b4b;
+    color: #fff;
 }
 
-.btn-primary:hover {
-    background-color: #357abd;
-}
-
-.btn-danger {
-    background-color: #d9534f;
-    color: #ffffff;
-}
-
-.btn-danger:hover {
-    background-color: #c9302c;
+.clear-btn:hover {
+    background-color: #a63b3b;
 }
 
 .output {
@@ -93,49 +90,22 @@ button {
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #444;
-}
-
-.converter {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.converter input {
-    width: 150px;
+    margin-top: 15px;
 }
 
 @media (max-width: 600px) {
-    input {
-        width: 70px;
-    }
-    .converter {
-        flex-direction: column;
-        align-items: center;
-    }
+    input { width: 70px; }
+    th, td { font-size: 12px; }
 }
 </style>
 </head>
 
 <body>
-<div class="container">
 
-<h2>Predictions on Real</h2>
+<h1>Predictions on Real</h1>
 
-<h3>Market Odds Converter</h3>
-<div class="converter">
-    <div>
-        Market Odds<br>
-        <input id="oddsInput">
-    </div>
-    <div>
-        Implied Probability (%)<br>
-        <input id="probInput">
-    </div>
-</div>
+<div class="section-title">Bets</div>
 
-<h3>Bets</h3>
 <table id="bets">
 <tr>
   <th>Team</th>
@@ -145,196 +115,133 @@ button {
   <th>Payout (optional)</th>
   <th>Result (W/L)</th>
 </tr>
+</table>
+
+<button onclick="addRow()">Add Row</button>
+<button onclick="generate()">Generate</button>
+<button class="clear-btn" onclick="clearAll()">Clear All</button>
+
+<div class="section-title">Market Odds Converter</div>
+
+<table>
 <tr>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input></td>
-  <td><input value="W"></td>
+  <th>Odds</th>
+  <th>Implied %</th>
+</tr>
+<tr>
+  <td><input id="convOdds" placeholder="-110"></td>
+  <td><input id="convPct" placeholder="52.4%"></td>
 </tr>
 </table>
 
-<div class="button-bar">
-    <button class="btn-primary" onclick="addRow()">Add Bet</button>
-    <button class="btn-primary" onclick="generate()">Generate</button>
-    <button class="btn-primary" onclick="copyOutput()">Copy All</button>
-    <button class="btn-danger" onclick="clearAll()">Clear All</button>
-</div>
-
 <div class="output" id="output"></div>
 
-</div>
-
 <script>
-// ----------------------
-// Odds Converter
-// ----------------------
-const oddsInput = document.getElementById("oddsInput");
-const probInput = document.getElementById("probInput");
-
-oddsInput.addEventListener("input", () => {
-    const odds = Number(oddsInput.value);
-    if (!odds) return;
-    const prob = odds < 0
-        ? Math.abs(odds) / (Math.abs(odds) + 100)
-        : 100 / (odds + 100);
-    probInput.value = (prob * 100).toFixed(1);
-    saveAll();
-});
-
-probInput.addEventListener("input", () => {
-    const p = Number(probInput.value) / 100;
-    if (!p || p <= 0 || p >= 1) return;
-    const odds = p > 0.5
-        ? -(100 * p / (1 - p))
-        : (100 * (1 - p) / p);
-    oddsInput.value = Math.round(odds);
-    saveAll();
-});
-
-// ----------------------
-// Bets
-// ----------------------
-function addRow() {
-    const table = document.getElementById("bets");
-    const row = table.insertRow();
-    for (let i = 0; i < 6; i++) {
-        const cell = row.insertCell();
-        const input = document.createElement("input");
-        if (i === 5) input.value = "W";
-        input.addEventListener("input", saveAll);
-        cell.appendChild(input);
-    }
-    saveAll();
-}
+const table = document.getElementById("bets");
 
 function oddsToPercent(odds) {
-    return odds < 0
-        ? Math.abs(odds) / (Math.abs(odds) + 100) * 100
-        : 100 / (odds + 100) * 100;
+  odds = Number(odds);
+  if (odds < 0) return Math.abs(odds)/(Math.abs(odds)+100)*100;
+  return 100/(odds+100)*100;
 }
 
-function formatSigned(num) {
-    return (num >= 0 ? "+" : "") + num.toFixed(1) + "%";
+function percentToOdds(p) {
+  p = Number(p)/100;
+  if (p <= 0 || p >= 1) return "";
+  return p > 0.5 ? -(p/(1-p)*100).toFixed(0) : ((1-p)/p*100).toFixed(0);
 }
 
-// ----------------------
-// AUTO-SAVE
-// ----------------------
-function saveAll() {
-    const table = document.getElementById("bets");
-    const rows = [];
-
-    for (let i = 1; i < table.rows.length; i++) {
-        const inputs = [...table.rows[i].querySelectorAll("input")].map(i => i.value);
-        rows.push(inputs);
-    }
-
-    localStorage.setItem("betsData", JSON.stringify(rows));
-    localStorage.setItem("oddsInput", oddsInput.value);
-    localStorage.setItem("probInput", probInput.value);
+function addRow(data={}) {
+  const row = table.insertRow();
+  ["team","real","odds","rax","payout","result"].forEach((k,i)=>{
+    const cell = row.insertCell();
+    const input = document.createElement("input");
+    input.value = data[k] || (k==="result"?"W":"");
+    input.oninput = saveData;
+    cell.appendChild(input);
+  });
 }
 
-function loadAll() {
-    const saved = JSON.parse(localStorage.getItem("betsData"));
-    if (!saved) return;
+function saveData() {
+  const rows = [...table.rows].slice(1).map(r=>{
+    return [...r.cells].map(c=>c.children[0].value);
+  });
+  localStorage.setItem("betsData", JSON.stringify(rows));
+}
 
-    const table = document.getElementById("bets");
-    table.innerHTML = table.rows[0].outerHTML;
-
-    saved.forEach(rowData => {
-        const row = table.insertRow();
-        rowData.forEach(val => {
-            const cell = row.insertCell();
-            const input = document.createElement("input");
-            input.value = val;
-            input.addEventListener("input", saveAll);
-            cell.appendChild(input);
-        });
-    });
-
-    oddsInput.value = localStorage.getItem("oddsInput") || "";
-    probInput.value = localStorage.getItem("probInput") || "";
+function loadData() {
+  const data = JSON.parse(localStorage.getItem("betsData")||"[]");
+  data.forEach(r=>addRow({
+    team:r[0], real:r[1], odds:r[2], rax:r[3], payout:r[4], result:r[5]
+  }));
+  if(data.length===0) addRow();
 }
 
 function clearAll() {
-    if (!confirm("Clear ALL saved data? This cannot be undone.")) return;
-    localStorage.clear();
+  if(confirm("Clear all saved bets?")) {
+    localStorage.removeItem("betsData");
     location.reload();
+  }
 }
 
-// ----------------------
-// OUTPUT
-// ----------------------
+function formatSigned(n){ return (n>=0?"+":"")+n.toFixed(1)+"%"; }
+
 function generate() {
-    const table = document.getElementById("bets");
-    let totalRisk = 0, totalProfit = 0, totalEdge = 0;
-    let wins = 0, losses = 0;
+  let risk=0, profit=0, edgeSum=0, w=0,l=0;
+  let out="", recap="";
 
-    let blocks = "";
-    let recap = "";
+  [...table.rows].slice(1).forEach(r=>{
+    const v=[...r.cells].map(c=>c.children[0].value);
+    if(!v[0]) return;
 
-    for (let i = 1; i < table.rows.length; i++) {
-        const c = table.rows[i].cells;
-        const team = c[0].children[0].value;
-        if (!team) continue;
+    const real=+v[1], odds=+v[2], rax=+v[3];
+    const market=oddsToPercent(odds);
+    const edge=market-real;
+    const buy=market-5;
+    const win=v[5].toUpperCase()==="W";
 
-        const real = Number(c[1].children[0].value);
-        const odds = Number(c[2].children[0].value);
-        const rax = Number(c[3].children[0].value);
-        const payout = c[4].children[0].value;
-        const result = c[5].children[0].value.toUpperCase();
+    let p=win?(v[4]?+v[4]-rax:(odds<0?rax*(100/Math.abs(odds)):rax*(odds/100))):-rax;
 
-        const market = oddsToPercent(odds);
-        const edge = market - real;
-        const buyMax = market - 5;
+    risk+=rax; profit+=p; edgeSum+=edge;
+    win?w++:l++;
 
-        const profit = result === "W"
-            ? (payout ? payout - rax : (odds < 0 ? rax * (100 / Math.abs(odds)) : rax * (odds / 100)))
-            : -rax;
-
-        result === "W" ? wins++ : losses++;
-
-        totalRisk += rax;
-        totalProfit += profit;
-        totalEdge += edge;
-
-        blocks +=
-`Team: ${team}
+    out+=`Team: ${v[0]}
 Bought: ${rax.toLocaleString()} RAX
 Real: (${real}%)
 Market: (${odds}) (${market.toFixed(1)}%)
 Edge: ${formatSigned(edge)}
-Buy ≤ (${buyMax.toFixed(1)}%)
-Result: ${result === "W" ? "✅" : "❌"}
+Buy ≤ (${buy.toFixed(1)}%)
+Result: ${win?"✅":"❌"}
 
 `;
+    recap+=`${v[0]} ML (${odds}): ${win?"✅":"❌"}\n`;
+  });
 
-        recap += `${team} ML (${odds}): ${result === "W" ? "✅" : "❌"}\n`;
-    }
+  const actual=(profit/risk)*100;
+  const luck=actual-edgeSum;
 
-    const actualReturn = (totalProfit / totalRisk) * 100;
-    const luck = actualReturn - totalEdge;
-
-    document.getElementById("output").textContent =
-blocks +
-"-----------------\n" +
-recap +
-"-----------------\n" +
-`Record: ${wins}-${losses}
-Total Risk: ${totalRisk.toLocaleString()} RAX
-Profit: ${totalProfit.toFixed(0)} RAX
-Expected Return: ${formatSigned(totalEdge)}
-Actual Return: ${formatSigned(actualReturn)}
+  document.getElementById("output").textContent=
+out+"-----------------\n"+recap+
+"-----------------\n"+
+`Record: ${w}-${l}
+Total Risk: ${risk.toLocaleString()} RAX
+Profit: ${profit.toFixed(0)} RAX
+Expected Return: ${formatSigned(edgeSum)}
+Actual Return: ${formatSigned(actual)}
 Luck: ${formatSigned(luck)}`;
 }
 
-function copyOutput() {
-    navigator.clipboard.writeText(document.getElementById("output").textContent);
-}
+document.getElementById("convOdds").oninput=e=>{
+  document.getElementById("convPct").value=
+    oddsToPercent(e.target.value).toFixed(2)+"%";
+};
 
-loadAll();
+document.getElementById("convPct").oninput=e=>{
+  document.getElementById("convOdds").value=
+    percentToOdds(e.target.value);
+};
+
+loadData();
 </script>
 
 </body>
