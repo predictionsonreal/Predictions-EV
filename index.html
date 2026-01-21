@@ -120,17 +120,20 @@ button:hover {
 <button onclick="addRow()">Add Bet</button>
 <button onclick="generate()">Generate</button>
 <button onclick="copyOutput()">Copy All</button>
+<button onclick="saveInputs()">Lock In</button>
+<button onclick="clearAll()">Clear All</button>
 
 <div class="output" id="output"></div>
 
 <script>
-function addRow() {
+function addRow(team="", real="", odds="", rax="", payout="", result="W") {
   const table = document.getElementById("bets");
   const row = table.insertRow();
+  const values = [team, real, odds, rax, payout, result];
   for (let i = 0; i < 6; i++) {
     const cell = row.insertCell();
     const input = document.createElement("input");
-    if(i===5) input.value="W";
+    input.value = values[i];
     if(i===0) input.placeholder="Team";
     if(i===1) input.placeholder="Real %";
     if(i===2) input.placeholder="Odds";
@@ -228,6 +231,38 @@ function copyOutput() {
   navigator.clipboard.writeText(output.textContent).then(() => {
     alert("Daily Recap copied to clipboard!");
   });
+}
+
+// Save all input values to localStorage
+function saveInputs() {
+  const table = document.getElementById("bets");
+  const data = [];
+  for (let i = 1; i < table.rows.length; i++) {
+    const cells = table.rows[i].cells;
+    const row = [];
+    for (let j = 0; j < 6; j++) {
+      row.push(cells[j].children[0].value);
+    }
+    data.push(row);
+  }
+  localStorage.setItem("betsData", JSON.stringify(data));
+  alert("Inputs locked in!");
+}
+
+// Load saved inputs on page load
+window.onload = function() {
+  const saved = localStorage.getItem("betsData");
+  if(saved) {
+    const data = JSON.parse(saved);
+    for(const row of data) addRow(...row);
+  }
+}
+
+// Clear all inputs and localStorage
+function clearAll() {
+  localStorage.removeItem("betsData");
+  const table = document.getElementById("bets");
+  while(table.rows.length > 1) table.deleteRow(1);
 }
 </script>
 </body>
