@@ -54,18 +54,36 @@ input {
 }
 
 button {
-    padding: 10px 16px;
-    margin: 6px 6px 12px 0;
+    padding: 12px 18px;
     border-radius: 6px;
     border: none;
-    background-color: #4a90e2;
-    color: #1e1e2f;
     font-weight: bold;
     cursor: pointer;
 }
 
-button:hover {
+.button-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-primary {
+    background-color: #4a90e2;
+    color: #1e1e2f;
+}
+
+.btn-primary:hover {
     background-color: #357abd;
+}
+
+.btn-danger {
+    background-color: #d9534f;
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    background-color: #c9302c;
 }
 
 .output {
@@ -91,6 +109,10 @@ button:hover {
 @media (max-width: 600px) {
     input {
         width: 70px;
+    }
+    .converter {
+        flex-direction: column;
+        align-items: center;
     }
 }
 </style>
@@ -133,10 +155,12 @@ button:hover {
 </tr>
 </table>
 
-<button onclick="addRow()">Add Bet</button>
-<button onclick="clearAll()">Clear All</button>
-<button onclick="generate()">Generate</button>
-<button onclick="copyOutput()">Copy All</button>
+<div class="button-bar">
+    <button class="btn-primary" onclick="addRow()">Add Bet</button>
+    <button class="btn-primary" onclick="generate()">Generate</button>
+    <button class="btn-primary" onclick="copyOutput()">Copy All</button>
+    <button class="btn-danger" onclick="clearAll()">Clear All</button>
+</div>
 
 <div class="output" id="output"></div>
 
@@ -144,7 +168,7 @@ button:hover {
 
 <script>
 // ----------------------
-// Odds Converter (Auto-save)
+// Odds Converter
 // ----------------------
 const oddsInput = document.getElementById("oddsInput");
 const probInput = document.getElementById("probInput");
@@ -196,7 +220,7 @@ function formatSigned(num) {
 }
 
 // ----------------------
-// AUTO-SAVE / LOAD
+// AUTO-SAVE
 // ----------------------
 function saveAll() {
     const table = document.getElementById("bets");
@@ -235,7 +259,7 @@ function loadAll() {
 }
 
 function clearAll() {
-    if (!confirm("Clear all saved bets?")) return;
+    if (!confirm("Clear ALL saved data? This cannot be undone.")) return;
     localStorage.clear();
     location.reload();
 }
