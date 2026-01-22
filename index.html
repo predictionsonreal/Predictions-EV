@@ -104,7 +104,7 @@ button:hover {
 
 <h1>Predictions on Real</h1>
 
-<!-- MARKET ODDS CONVERTER (MOVED TO TOP) -->
+<!-- MARKET ODDS CONVERTER -->
 <div class="section-title">Market Odds Converter</div>
 
 <table>
@@ -118,7 +118,7 @@ button:hover {
 </tr>
 </table>
 
-<!-- BETS SECTION -->
+<!-- BETS -->
 <div class="section-title">Bets</div>
 
 <table id="bets">
@@ -141,6 +141,7 @@ button:hover {
 <script>
 const table = document.getElementById("bets");
 
+/* ---------- UTIL ---------- */
 function oddsToPercent(odds) {
   odds = Number(odds);
   if (odds < 0) return Math.abs(odds)/(Math.abs(odds)+100)*100;
@@ -153,12 +154,17 @@ function percentToOdds(p) {
   return p > 0.5 ? -(p/(1-p)*100).toFixed(0) : ((1-p)/p*100).toFixed(0);
 }
 
-function addRow(data={}) {
+function formatSigned(n) {
+  return (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+}
+
+/* ---------- ROW HANDLING ---------- */
+function addRow(data = {}) {
   const row = table.insertRow();
-  ["team","real","odds","rax","payout","result"].forEach((k)=>{
+  ["team","real","odds","rax","payout","result"].forEach(k => {
     const cell = row.insertCell();
     const input = document.createElement("input");
-    input.value = data[k] || (k==="result"?"W":"");
+    input.value = data[k] || (k === "result" ? "W" : "");
     input.oninput = saveData;
     cell.appendChild(input);
   });
@@ -166,4 +172,43 @@ function addRow(data={}) {
 
 function saveData() {
   const rows = [...table.rows].slice(1).map(r =>
-    [...]()
+    [...r.cells].map(c => c.children[0].value)
+  );
+  localStorage.setItem("betsData", JSON.stringify(rows));
+}
+
+function loadData() {
+  const data = JSON.parse(localStorage.getItem("betsData") || "[]");
+  if (data.length === 0) {
+    addRow(); // ✅ CRITICAL: ensures text boxes exist
+  } else {
+    data.forEach(r => addRow({
+      team:r[0], real:r[1], odds:r[2], rax:r[3], payout:r[4], result:r[5]
+    }));
+  }
+}
+
+function clearAll() {
+  if (confirm("Clear all saved bets?")) {
+    localStorage.removeItem("betsData");
+    location.reload();
+  }
+}
+
+/* ---------- GENERATE ---------- */
+function generate() {
+  let risk=0, profit=0, edgeSum=0, w=0, l=0;
+  let out="", recap="";
+
+  [...table.rows].slice(1).forEach(r=>{
+    const v=[...r.cells].map(c=>c.children[0].value);
+    if(!v[0]) return;
+
+    const real=+v[1], odds=+v[2], rax=+v[3];
+    const market=oddsToPercent(odds);
+    const edge=market-real;
+    const buy=market-5;
+    const win=v[5].toUpperCase()==="W";
+
+    let p = win
+      ? (v[4] ? +
