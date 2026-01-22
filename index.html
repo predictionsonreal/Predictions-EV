@@ -17,7 +17,7 @@ h1 {
     color: #4a90e2;
     text-align: center;
     font-size: 28px;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 .section-title {
@@ -135,47 +135,49 @@ button:hover {
 // Reference the bets table
 const table = document.getElementById("bets");
 
-// Convert American odds to implied % (market)
+// Convert American odds to implied %
 function oddsToPercent(odds) {
   odds = Number(odds);
   if (odds < 0) return Math.abs(odds)/(Math.abs(odds)+100)*100;
   return 100/(odds+100)*100;
 }
 
+// Convert % to American odds for converter
+function percentToOdds(pct) {
+  pct = Number(pct);
+  if (pct <= 50) return Math.round((100/pct)-100);
+  return Math.round(-100/(pct/100-1));
+}
+
+// Format with + or -
 function formatSigned(n) {
   return (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
 }
 
-// Add a new row with input boxes
+// Add a new row with inputs
 function addRow(data={}) {
   const row = table.insertRow();
   ["team","real","odds","rax","payout","result"].forEach(key => {
     const cell = row.insertCell();
     const input = document.createElement("input");
     input.value = data[key] || (key==="result" ? "W" : "");
+    input.placeholder = key==="team" ? "Team" : key==="real" ? "Real %" : key==="odds" ? "Odds" : key==="rax" ? "RAX" : key==="payout" ? "Payout" : "W/L";
     input.addEventListener("input", saveAll);
     cell.appendChild(input);
   });
 }
 
-// Save current rows to localStorage (auto)
+// Save current table to localStorage
 function saveAll() {
-  const rows = [...table.rows].slice(1).map(r =>
-    [...r.cells].map(c => c.children[0].value)
-  );
+  const rows = [...table.rows].slice(1).map(r => [...r.cells].map(c => c.children[0].value));
   localStorage.setItem("betsData", JSON.stringify(rows));
 }
 
-// Load saved rows, or create one if none
+// Load saved rows or add initial row
 function loadAll() {
   const saved = JSON.parse(localStorage.getItem("betsData")||"[]");
-  if (saved.length) {
-    saved.forEach(r => addRow({
-      team:r[0], real:r[1], odds:r[2], rax:r[3], payout:r[4], result:r[5]
-    }));
-  } else {
-    addRow(); // ❗ Always ensure at least one editable row
-  }
+  if (saved.length) saved.forEach(r => addRow({team:r[0], real:r[1], odds:r[2], rax:r[3], payout:r[4], result:r[5]}));
+  else addRow(); // always at least one row
 }
 
 // Clear everything
@@ -186,7 +188,7 @@ function clearAll() {
   }
 }
 
-// Generate recap/output
+// Generate output
 function generate() {
   let totalRisk=0, totalProfit=0, totalEdge=0, wins=0, losses=0;
   let betBlocks="", recapLines="";
@@ -196,13 +198,13 @@ function generate() {
     if (!cells[0]) return;
 
     const real = Number(cells[1]), odds = Number(cells[2]), rax = Number(cells[3]);
-    const payout = cells[4], result=cells[5].toUpperCase();
+    const payout = cells[4], result = cells[5].toUpperCase();
     const market = oddsToPercent(odds);
     const edge = market - real;
     const buyMax = market - 5;
 
-    const profit = result==="W"
-      ? (payout ? +payout-rax : (odds<0 ? rax*(100/Math.abs(odds)) : rax*(odds/100)))
+    const profit = result==="W" 
+      ? (payout ? +payout-rax : (odds<0 ? rax*(100/Math.abs(odds)) : rax*(odds/100))) 
       : -rax;
 
     totalRisk += rax;
@@ -240,17 +242,15 @@ Actual Return: ${formatSigned(actualReturn)}
 Luck: ${formatSigned(luck)}`;
 }
 
-// Converter live logic
-document.getElementById("convOdds").oninput=e=>{
-  document.getElementById("convPct").value =
-    oddsToPercent(e.target.value).toFixed(2)+"%";
+// Odds converter live updates
+document.getElementById("convOdds").oninput = e => {
+  document.getElementById("convPct").value = oddsToPercent(e.target.value).toFixed(2)+"%";
 };
-document.getElementById("convPct").oninput=e=>{
-  document.getElementById("convOdds").value =
-    percentToOdds(e.target.value);
+document.getElementById("convPct").oninput = e => {
+  document.getElementById("convOdds").value = percentToOdds(e.target.value);
 };
 
-// Initialize
+// Initialize table
 loadAll();
 </script>
 
