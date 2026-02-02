@@ -201,7 +201,7 @@ function generate() {
     const payout = cells[4], result = cells[5].toUpperCase();
     const market = oddsToPercent(odds);
     const edge = market - real;
-    const buyMax = Math,round(market - 5);
+    const buyMax = market - 5;
 
     const profit = result==="W" 
       ? (payout ? +payout-rax : (odds<0 ? rax*(100/Math.abs(odds)) : rax*(odds/100))) 
@@ -218,7 +218,7 @@ Bought: ${rax.toLocaleString()} RAX
 Real: (${real}%)
 Market: (${odds}) (${market.toFixed(1)}%)
 Edge: ${formatSigned(edge)}
-Buy ≤ (${buyMax}%)
+Buy ≤ (${Math.round(buyMax)}%)
 Result: ${result==="W"?"✅":"❌"}
 
 `;
@@ -256,4 +256,5 @@ loadAll();
 
 </body>
 </html>
+
 
