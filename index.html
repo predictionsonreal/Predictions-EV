@@ -117,10 +117,9 @@ button:hover {
 <table id="bets">
   <tr>
     <th>Team</th>
-    <th>Real %</th>
     <th>Market Odds</th>
     <th>RAX</th>
-    <th>Payout (optional)</th>
+    <th>Payout</th>
     <th>Result (W/L)</th>
   </tr>
 </table>
@@ -132,129 +131,124 @@ button:hover {
 <div class="output" id="output"></div>
 
 <script>
-// Reference the bets table
 const table = document.getElementById("bets");
 
-// Convert American odds to implied %
+// Odds to implied %
 function oddsToPercent(odds) {
   odds = Number(odds);
   if (odds < 0) return Math.abs(odds)/(Math.abs(odds)+100)*100;
   return 100/(odds+100)*100;
 }
 
-// Convert % to American odds for converter
-function percentToOdds(pct) {
-  pct = Number(pct);
-  if (pct <= 50) return Math.round((100/pct)-100);
-  return Math.round(-100/(pct/100-1));
-}
-
-// Format with + or -
+// Format signed %
 function formatSigned(n) {
   return (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
 }
 
-// Add a new row with inputs
+// Add row
 function addRow(data={}) {
   const row = table.insertRow();
-  ["team","real","odds","rax","payout","result"].forEach(key => {
+  ["team","odds","rax","payout","result"].forEach(key => {
     const cell = row.insertCell();
     const input = document.createElement("input");
     input.value = data[key] || (key==="result" ? "W" : "");
-    input.placeholder = key==="team" ? "Team" : key==="real" ? "Real %" : key==="odds" ? "Odds" : key==="rax" ? "RAX" : key==="payout" ? "Payout" : "W/L";
+    input.placeholder = key==="team" ? "Team" : key==="odds" ? "Odds" : key==="rax" ? "RAX" : key==="payout" ? "Payout" : "W/L";
     input.addEventListener("input", saveAll);
     cell.appendChild(input);
   });
 }
 
-// Save current table to localStorage
+// Save/load
 function saveAll() {
   const rows = [...table.rows].slice(1).map(r => [...r.cells].map(c => c.children[0].value));
   localStorage.setItem("betsData", JSON.stringify(rows));
 }
 
-// Load saved rows or add initial row
 function loadAll() {
   const saved = JSON.parse(localStorage.getItem("betsData")||"[]");
-  if (saved.length) saved.forEach(r => addRow({team:r[0], real:r[1], odds:r[2], rax:r[3], payout:r[4], result:r[5]}));
-  else addRow(); // always at least one row
+  if (saved.length) saved.forEach(r => addRow({team:r[0], odds:r[1], rax:r[2], payout:r[3], result:r[4]}));
+  else addRow();
 }
 
-// Clear everything
 function clearAll() {
-  if (confirm("Clear all saved bets?")) {
+  if(confirm("Clear all saved bets?")) {
     localStorage.removeItem("betsData");
     location.reload();
   }
 }
 
-// Generate output
+// Calculate EV % = (market implied % / real implied %) -1
+function calculateEV(rax,payout,odds) {
+  if(!payout || !rax || !odds) return 0;
+  const realImplied = rax / payout * 100; // Real implied %
+  const marketImplied = oddsToPercent(odds);
+  return (marketImplied/realImplied - 1)*100;
+}
+
 function generate() {
-  let totalRisk=0, totalProfit=0, totalEdge=0, wins=0, losses=0;
+  let totalRisk=0, totalProfit=0, totalEV=0, wins=0, losses=0;
   let betBlocks="", recapLines="";
 
-  [...table.rows].slice(1).forEach(row => {
-    const cells = [...row.cells].map(c => c.children[0].value);
-    if (!cells[0]) return;
+  [...table.rows].slice(1).forEach(row=>{
+    const cells = [...row.cells].map(c=>c.children[0].value);
+    if(!cells[0]) return;
 
-    const real = Number(cells[1]), odds = Number(cells[2]), rax = Number(cells[3]);
-    const payout = cells[4], result = cells[5].toUpperCase();
+    const team = cells[0];
+    const odds = Number(cells[1]);
+    const rax = Number(cells[2]);
+    const payout = Number(cells[3]);
+    const result = cells[4].toUpperCase();
+
     const market = oddsToPercent(odds);
-    const edge = market - real;
+    const ev = calculateEV(rax,payout,odds);
     const buyMax = market - 5;
-
-    const profit = result==="W" 
-      ? (payout ? +payout-rax : (odds<0 ? rax*(100/Math.abs(odds)) : rax*(odds/100))) 
-      : -rax;
+    const profit = result==="W" ? payout-rax : -rax;
 
     totalRisk += rax;
     totalProfit += profit;
-    totalEdge += edge;
+    totalEV += ev*rax;
     result==="W" ? wins++ : losses++;
 
     betBlocks +=
-`Team: ${cells[0]}
+`Team: ${team}
 Bought: ${rax.toLocaleString()} RAX
-Real: (${real}%)
+Real: (${Math.round(rax/payout*100)}%)
 Market: (${odds}) (${market.toFixed(1)}%)
-Edge: ${formatSigned(edge)}
+EV: ${formatSigned(ev)}
 Buy ≤ (${Math.round(buyMax)}%)
 Result: ${result==="W"?"✅":"❌"}
 
 `;
 
-    recapLines += `${cells[0]} ML (${odds}): ${result==="W"?"✅":"❌"}\n`;
+    recapLines += `${team} ML (${odds}): ${result==="W"?"✅":"❌"}\n`;
   });
 
+  const expectedReturn = totalEV/totalRisk;
   const actualReturn = (totalProfit/totalRisk)*100;
-  const luck = actualReturn - totalEdge;
+  const luck = actualReturn-expectedReturn;
 
   document.getElementById("output").textContent =
 betBlocks +
-"-----------------\n" +
-recapLines +
-"-----------------\n" +
+"-----------------\n"+
+recapLines+
+"-----------------\n"+
 `Record: ${wins}-${losses}
 Total Risk: ${totalRisk.toLocaleString()} RAX
 Profit: ${totalProfit.toFixed(0)} RAX
-Expected Return: ${formatSigned(totalEdge)}
+Expected Return: ${formatSigned(expectedReturn)}
 Actual Return: ${formatSigned(actualReturn)}
 Luck: ${formatSigned(luck)}`;
 }
 
-// Odds converter live updates
+// Odds converter live
 document.getElementById("convOdds").oninput = e => {
   document.getElementById("convPct").value = oddsToPercent(e.target.value).toFixed(2)+"%";
 };
 document.getElementById("convPct").oninput = e => {
-  document.getElementById("convOdds").value = percentToOdds(e.target.value);
+  document.getElementById("convOdds").value = Math.round(100/(Number(e.target.value))-100);
 };
 
-// Initialize table
 loadAll();
 </script>
-
 </body>
 </html>
-
-
