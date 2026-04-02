@@ -12,73 +12,16 @@ body {
     color: #e0e0e0;
     padding: 20px;
 }
-
-h1 {
-    color: #4a90e2;
-    text-align: center;
-    font-size: 28px;
-}
-
-.section-title {
-    color: #fff;
-    font-size: 18px;
-    margin: 20px 0 10px;
-    font-weight: 600;
-}
-
-table {
-    border-collapse: collapse;
-    width: 100%;
-    background-color: #2c2c3e;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-th, td {
-    border: 1px solid #444;
-    padding: 10px;
-    text-align: center;
-}
-
-th {
-    background-color: #3a3a55;
-}
-
-input {
-    width: 90px;
-    padding: 6px;
-    border-radius: 4px;
-    border: 1px solid #666;
-    background-color: #2c2c3e;
-    color: #e0e0e0;
-    text-align: center;
-}
-
-button {
-    padding: 10px 16px;
-    margin: 5px 5px 15px 0;
-    border-radius: 6px;
-    border: none;
-    background-color: #4a90e2;
-    color: #1e1e2f;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.clear-btn {
-    background-color: #d9534f;
-    color: #fff;
-}
-
-.output {
-    white-space: pre-line;
-    font-family: monospace;
-    background-color: #2c2c3e;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 15px;
-}
-
+h1 { color: #4a90e2; text-align: center; }
+.section-title { color: #fff; font-size: 18px; margin: 20px 0 10px; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; background-color: #2c2c3e; border-radius: 8px; }
+th, td { border: 1px solid #444; padding: 10px; text-align: center; }
+th { background-color: #3a3a55; }
+input { width: 85px; padding: 6px; border-radius: 4px; border: 1px solid #666; background-color: #2c2c3e; color: #e0e0e0; text-align: center; }
+.ev-cell { font-weight: bold; }
+button { padding: 10px 16px; margin: 5px 5px 15px 0; border-radius: 6px; border: none; background-color: #4a90e2; color: #1e1e2f; font-weight: bold; cursor: pointer; }
+.clear-btn { background-color: #d9534f; color: #fff; }
+.output { white-space: pre-line; font-family: monospace; background-color: #2c2c3e; padding: 15px; border-radius: 8px; margin-top: 15px; }
 </style>
 </head>
 
@@ -87,7 +30,7 @@ button {
 <h1>Predictions on Real</h1>
 
 <div class="section-title">Unit Settings</div>
-<input id="unitSize" placeholder="RAX per Unit (ex: 2000)" oninput="saveUnit()">
+<input id="unitSize" placeholder="RAX per Unit (ex: 2000)" oninput="saveUnit(); updateAllEV();">
 
 <div class="section-title">Bets</div>
 
@@ -95,8 +38,9 @@ button {
 <tr>
 <th>Team</th>
 <th>Market Odds</th>
+<th>Real %</th>
 <th>Units</th>
-<th>Payout (RAX)</th>
+<th>EV %</th>
 <th>Result</th>
 </tr>
 </table>
@@ -111,126 +55,148 @@ button {
 const table = document.getElementById("bets");
 
 // Odds → %
-function oddsToPercent(odds){
-  odds = Number(odds);
-  if(odds<0) return Math.abs(odds)/(Math.abs(odds)+100)*100;
-  return 100/(odds+100)*100;
+function oddsToPercent(o){
+  o = Number(o);
+  if(o<0) return Math.abs(o)/(Math.abs(o)+100)*100;
+  return 100/(o+100)*100;
 }
 
-function formatSigned(n){
-  return (n>=0?"+":"")+n.toFixed(1)+"%";
-}
+function formatSigned(n){ return (n>=0?"+":"")+n.toFixed(1)+"%"; }
 
-// Save/load unit size
-function saveUnit(){
-  localStorage.setItem("unitSize", document.getElementById("unitSize").value);
-}
-function loadUnit(){
-  document.getElementById("unitSize").value = localStorage.getItem("unitSize") || "";
+// Save/load
+function saveUnit(){ localStorage.setItem("unitSize", unitSize.value); }
+function loadUnit(){ unitSize.value = localStorage.getItem("unitSize")||""; }
+
+function saveAll(){
+  const rows=[...table.rows].slice(1).map(r=>[...r.cells].map(c=>c.innerText||c.children[0].value));
+  localStorage.setItem("betsData", JSON.stringify(rows));
 }
 
 // Add row
 function addRow(data={}){
   const row = table.insertRow();
-  ["team","odds","units","payout","result"].forEach(key=>{
+
+  ["team","odds","real","units"].forEach((key,i)=>{
     const cell = row.insertCell();
     const input = document.createElement("input");
-    input.value = data[key] || (key==="result"?"W":"");
-    input.placeholder = key;
-    input.oninput = saveAll;
+    input.value = data[key]||"";
+    input.oninput = ()=>{ updateEV(row); saveAll(); };
     cell.appendChild(input);
   });
+
+  // EV display cell
+  const evCell = row.insertCell();
+  evCell.className = "ev-cell";
+  evCell.innerText = "0%";
+
+  // Result
+  const resCell = row.insertCell();
+  const input = document.createElement("input");
+  input.value = data.result||"W";
+  input.oninput = saveAll;
+  resCell.appendChild(input);
 }
 
-// Save/load rows
-function saveAll(){
-  const rows=[...table.rows].slice(1).map(r=>[...r.cells].map(c=>c.children[0].value));
-  localStorage.setItem("betsData", JSON.stringify(rows));
+// EV calc using Real % instead of Payout
+function calcEV(units,odds,realPct){
+  if(!units||!odds||!realPct) return 0;
+  const marketPct = oddsToPercent(odds);
+  return (marketPct/realPct-1)*100;
 }
 
+// Update one row EV
+function updateEV(row){
+  const inputs = row.querySelectorAll("input");
+  const unitSize = Number(document.getElementById("unitSize").value);
+
+  const odds = Number(inputs[1].value);
+  const real = Number(inputs[2].value);
+  const units = Number(inputs[3].value);
+
+  const ev = calcEV(units,odds,real);
+  row.cells[4].innerText = formatSigned(ev);
+
+  if(ev>10) row.cells[4].style.color="#4caf50";
+  else if(ev>0) row.cells[4].style.color="#8bc34a";
+  else row.cells[4].style.color="#f44336";
+}
+
+// Update all rows
+function updateAllEV(){ [...table.rows].slice(1).forEach(row=>updateEV(row)); }
+
+// Load rows
 function loadAll(){
   const saved = JSON.parse(localStorage.getItem("betsData")||"[]");
-  if(saved.length) saved.forEach(r=>addRow({team:r[0],odds:r[1],units:r[2],payout:r[3],result:r[4]}));
+  if(saved.length) saved.forEach(r=>addRow({team:r[0],odds:r[1],real:r[2],units:r[3],result:r[5]}));
   else addRow();
 }
 
-function clearAll(){
-  if(confirm("Clear all?")){
-    localStorage.clear();
-    location.reload();
-  }
-}
+// Clear
+function clearAll(){ if(confirm("Clear all?")){ localStorage.clear(); location.reload(); } }
 
-// EV calculation
-function calcEV(units,payout,odds,unitSize){
-  if(!payout||!units||!unitSize) return 0;
-  const rax = units*unitSize;
-  const realProb = rax/payout*100;
-  const marketProb = oddsToPercent(odds);
-  return (marketProb/realProb -1)*100;
-}
-
+// Generate recap
 function generate(){
   const unitSize = Number(document.getElementById("unitSize").value);
-  let totalUnits=0,totalProfit=0,totalEV=0,wins=0,losses=0;
-
-  let betBlocks="",recap="";
+  let totalUnits=0,totalProfitRAX=0,totalEV=0,wins=0,losses=0;
+  let output="", recap="";
 
   [...table.rows].slice(1).forEach(row=>{
-    const [team,odds,units,payout,result] = [...row.cells].map(c=>c.children[0].value);
+    const inputs = row.querySelectorAll("input");
+    const team = inputs[0].value;
     if(!team) return;
 
-    const u = Number(units);
-    const p = Number(payout);
-    const o = Number(odds);
+    const odds = Number(inputs[1].value);
+    const real = Number(inputs[2].value);
+    const units = Number(inputs[3].value);
+    const result = inputs[4].value.toUpperCase();
 
-    const rax = u*unitSize;
-    const market = oddsToPercent(o);
-    const real = rax/p*100;
-    const ev = calcEV(u,p,o,unitSize);
-    const buyMax = market-5;
+    const rax = units*unitSize;
+    const marketPct = oddsToPercent(odds);
+    const ev = calcEV(units,odds,real);
+    const buyMax = marketPct-5;
 
-    const profit = result==="W"?p-rax:-rax;
+    const profit = result==="W"? (marketPct/real-1)*rax : -rax;
 
-    totalUnits += u;
-    totalProfit += profit;
-    totalEV += ev*u;
-
+    totalUnits += units;
+    totalProfitRAX += profit;
+    totalEV += ev*units;
     result==="W"?wins++:losses++;
 
-    betBlocks +=
+    output +=
 `Team: ${team}
-Bought: ${u}u (${rax.toLocaleString()} RAX)
-Real: (${Math.round(real)}%)
-Market: (${o}) (${market.toFixed(1)}%)
+Bought: ${units}u (${rax.toLocaleString()} RAX)
+Real: (${real}%)
+Market: (${odds}) (${marketPct.toFixed(1)}%)
 EV: ${formatSigned(ev)}
 Buy ≤ (${Math.round(buyMax)}%)
 Result: ${result==="W"?"✅":"❌"}
 
 `;
-
-    recap += `${team} ML (${o}): ${result==="W"?"✅":"❌"}\n`;
+    recap += `${team} ML (${odds}): ${result==="W"?"✅":"❌"}\n`;
   });
 
   const expected = totalEV/totalUnits;
-  const actual = (totalProfit/(totalUnits*unitSize))*100;
+  const actual = (totalProfitRAX/(totalUnits*unitSize))*100;
+  const profitUnits = totalProfitRAX/unitSize;
   const luck = actual-expected;
 
   document.getElementById("output").textContent =
-betBlocks+
+output+
 "-----------------\n"+
 recap+
 "-----------------\n"+
 `Record: ${wins}-${losses}
-Total Units: ${totalUnits.toFixed(1)}u
-Profit: ${totalProfit.toFixed(0)} RAX
+Total Units: ${totalUnits.toFixed(2)}u
+Profit: ${profitUnits.toFixed(2)}u (${totalProfitRAX.toFixed(0)} RAX)
 Expected Return: ${formatSigned(expected)}
 Actual Return: ${formatSigned(actual)}
 Luck: ${formatSigned(luck)}`;
 }
 
-loadAll();
+// Init
 loadUnit();
+loadAll();
+updateAllEV();
 </script>
 
 </body>
